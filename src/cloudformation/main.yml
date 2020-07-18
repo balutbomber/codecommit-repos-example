@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: > 
+  This cloudformation script creates codecommit repositories
+          
+Rules:
+  RegionRule:
+    Assertions:
+    - Assert:
+        Fn::Contains:
+        - - us-west-2
+          - us-west-1
+        - !Ref AWS::Region
+      AssertDescription: This stack assumes deployment in Orgen or Northen California.  Please deploy stack
+          in one of these two regions
+
+Resources:
+  WorkloadOneRepositoryConfiguration:
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: ./modules/repositoryConfiguration/main.yml
+      Tags:
+        - Key: Repository
+          Value: WorkloadOne
+      Parameters:
+        RepositoryName: WorkloadOne
+        RepositoryDescription: The first workload
+

@@ -1,0 +1,116 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: > 
+  This cloudformation script creates a codecommit repository and the related IAM group, role, policies which 
+  are needed to allow users to the created repository.
+
+Parameters:
+  RepositoryName:
+    #AllowedPattern: "[\w\.-]+"
+    #onstraintDescription: "must follow [\w\.-]+"
+    Description: The name of the repository
+    Type: String
+  RepositoryDescription:
+    #AllowedPattern: "[\w\.-]+"
+    #onstraintDescription: "must follow [\w\.-]+"
+    Description: The description of the repository
+    Type: String
+
+Resources:
+  Repository:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: !Ref RepositoryName
+      RepositoryDescription: !Ref RepositoryDescription
+
+  DeveloperGroup:
+    Type: AWS::IAM::Group
+    Properties: 
+      GroupName: !Sub Developer_${RepositoryName}
+
+  AssumeRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties: 
+      Groups: 
+        - !Ref DeveloperGroup
+      PolicyName: !Sub AssumeRole_Developer_${RepositoryName}  
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - sts:*
+              - iam:GetRole
+            Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/CodeCommit_Role_${RepositoryName}                
+      
+  CodeCommitPolicy:
+    Type: AWS::IAM::Policy
+    Properties: 
+      Roles:
+        - !Ref DeveloperRole
+      PolicyName: !Sub CodeCommit_Developer_${RepositoryName}  
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - codecommit:ListRepositoriesForApprovalRuleTemplate
+              - sns:ListSubscriptionsByTopic
+              - codecommit:CreateApprovalRuleTemplate
+              - sns:GetTopicAttributes
+              - codecommit:UpdateApprovalRuleTemplateName
+              - codecommit:GetApprovalRuleTemplate
+              - codecommit:ListApprovalRuleTemplates
+              - sns:ListTopics
+              - codecommit:ListRepositories
+              - codecommit:UpdateApprovalRuleTemplateContent
+              - codecommit:UpdateApprovalRuleTemplateDescription
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - codecommit:Merge*
+              - codecommit:Get*
+              - codecommit:TagResource
+              - codecommit:BatchAssociateApprovalRuleTemplateWithRepositories
+              - codecommit:BatchGet*
+              - codecommit:GitPull
+              - codecommit:UntagResource
+              - codecommit:BatchDisassociateApprovalRuleTemplateFromRepositories
+              - codecommit:Update*
+              - codecommit:OverridePullRequestApprovalRules
+              - codecommit:Post*
+              - codecommit:EvaluatePullRequestApprovalRules
+              - codecommit:Test*
+              - codecommit:Create*
+              - codecommit:List*
+              - codecommit:DisassociateApprovalRuleTemplateFromRepository
+              - sns:Subscribe
+              - codecommit:Describe*
+              - codecommit:Put*
+              - codecommit:GitPush
+              - codecommit:DeleteFile
+              - codecommit:BatchDescribe*
+              - codecommit:AssociateApprovalRuleTemplateWithRepository
+              - codecommit:DeleteBranch
+            Resource:
+              - !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${RepositoryName}
+              - !Sub arn:aws:sns:*:*:codecommit-${RepositoryName}
+          - Effect: Allow
+            Action: sns:Unsubscribe
+            Resource: !Sub arn:aws:sns:*:*:codecommit-${RepositoryName}
+
+  DeveloperRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub CodeCommit_Role_${RepositoryName}
+      Description: !Sub Role providing access to the codecommit repository ${RepositoryName} 
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Ref AWS::AccountId
+            Action:
+              - sts:AssumeRole
+           
